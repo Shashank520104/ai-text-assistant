@@ -1,56 +1,176 @@
-// Creating First AI text generator..//
+// Creating First AI Text Generator
 
-// creating Express Server..//
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { GoogleGenAI } from "@google/genai"; // 1. Added the missing SDK import
+import { GoogleGenAI } from "@google/genai";
+import fs from "fs";
+import { text } from "stream/consumers";
 
 dotenv.config();
 
-const app = express();   // create express application..//
-app.use(cors());    // connects frontend with backend..//
-app.use(express.json());    // returns json formate data..//
+const app = express();
 
-// 2. Initialized the SDK instance (it automatically reads GEMINI_API_KEY from .env)
-const ai = new GoogleGenAI({});
+app.use(cors());
+app.use(express.json());
 
-// server checking routes// 
+
+
+
+
+// Gemini Initialization
+
+
+const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+});
+
+
+
+
+// Server Check Route
+
+
 app.get("/check", (req, res) => {
     res.send("Server says Hello..!");
 });
 
-// gemini api calling route//..
-app.post("/chat", async (req, res) => {
-    try {
-        const { prompt } = req.body;
 
-        if (!prompt) {
-            // Replaced 500 with 400 (Bad Request) since it's a client user input issue
+
+// Preserving the old history of chats..//
+
+app.get("/history",async(req,res)=>{
+    const data=fs.readFileSync("./data/chats.json","utf-8");
+
+    const chats=data.trim()?JSON.parse(data):[];
+
+    res.status(201).json(chats);
+
+});
+
+
+
+
+// Chat Route
+
+
+app.post("/chat", async (req, res) => 
+
+    {
+        console.log(process.cwd());
+
+    try 
+    
+    {
+
+        const { conversation, mode } = req.body;
+
+
+if (!conversation || conversation.length === 0) 
+    {
+
+    return res.status(400).json({
+        error: "Conversation is required",
+    });
+}
+
+const data = fs.readFileSync("./data/chats.json", "utf-8");
+
+const chats = data.trim() ? JSON.parse(data) : [];
+
+const latestUserMessage = conversation[conversation.length - 1];
+
+chats.push({
+    role: "user",
+    text: latestUserMessage.text,
+});
+
+fs.writeFileSync(
+    "./data/chats.json",
+    JSON.stringify(chats, null, 2)
+);
+
+console.log("Saved latest message:", latestUserMessage.text);
+console.log("Saved chats count:", chats.length);
+
+
+
+        if (!conversation || conversation.length === 0) {
             return res.status(400).json({
-                error: "Please provide a valid Prompt.."
+                error: "Conversation is required",
             });
         }
 
-        // 3. Changed 'Ai' to lowercase 'ai' to match our initialized instance
+        let systemPrompt = "";
+
+        if (mode === "mentor") {
+            systemPrompt = `
+You are an experienced Placement Mentor.
+Guide students about placements, internships, career growth, and resume building.
+Give realistic advice.
+`;
+        } else if (mode === "interviewer") {
+            systemPrompt = `
+You are a Product Company Interviewer.
+Ask technical questions, evaluate answers, and give constructive feedback.
+`;
+        } else if (mode === "coder") {
+            systemPrompt = `
+You are a Senior MERN Stack Developer.
+Explain concepts clearly, help debug code, and teach from beginner to advanced level.
+`;
+        } else {
+            systemPrompt = `
+You are a helpful AI assistant.
+Answer clearly and simply.
+`;
+        }
+
+        const chatHistory = conversation
+            .map((msg) => `${msg.role}: ${msg.text}`)
+            .join("\n");
+
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: prompt,
+            contents: `
+${systemPrompt}
+
+Conversation History:
+${chatHistory}
+`,
         });
 
+        // save AI response..//
+
+        const aiMessages={
+            role:"ai",
+            text:response.text,
+        };
+
+        chats.push(aiMessages);
+
+        fs.writeFileSync(
+    "./data/chats.json",
+    JSON.stringify(chats, null, 2)
+);
+
+
+
         res.status(200).json({
-            reply: response.text
+            reply: response.text,
         });
-    }
-    catch (error) {
+
+    } catch (error) {
         console.error("Gemini route error:", error);
+
         res.status(500).json({
-            error: "Something went wrong processing your AI request"
+            error: "Something went wrong processing your AI request",
+            details: error.message,
         });
     }
 });
 
-//server starts// 
+// Start Server
 app.listen(8000, () => {
-    console.log(`Server Started At port Number ${8000}`);
+    console.log("Server Started At Port 8000");
 });
