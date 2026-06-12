@@ -114,6 +114,12 @@ function App() {
         <option value="mentor">Mentor</option>
         <option value="interviewer">AI Interviewer</option>
         <option value="coder">Coding Assistant</option>
+        <option value="content-creator">content-creator</option>
+        <option value="Email-genrator">Email-genrator</option>
+        <option value="Linkdin-Post genrator">Linkdin-Post genrator</option>
+        <option value="Instagram Caption generator">Instagram Caption Generator</option>
+        <option value="Question Paper Generator">Question Paper Generator</option>
+        <option value="resume-analyzer">Resume Analyzer</option>
       </select>
 
       <input
