@@ -120,6 +120,8 @@ function App() {
         <option value="Instagram Caption generator">Instagram Caption Generator</option>
         <option value="Question Paper Generator">Question Paper Generator</option>
         <option value="resume-analyzer">Resume Analyzer</option>
+        <option value="code-reviewer">AI Code Reviewer</option>
+        <option value="bug-fixer">AI Bug Fixer</option>
       </select>
 
       <input
