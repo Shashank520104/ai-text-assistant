@@ -122,6 +122,11 @@ function App() {
         <option value="resume-analyzer">Resume Analyzer</option>
         <option value="code-reviewer">AI Code Reviewer</option>
         <option value="bug-fixer">AI Bug Fixer</option>
+        <option value="ats-checker">ATS Checker</option>
+        <option value="career-roadmap">Career Roadmap Generator</option>
+       <option value="project-advisor">AI Project Advisor</option>
+       <option value="idea-validator">AI Startup Idea Validator</option>
+
       </select>
 
       <input
