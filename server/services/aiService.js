@@ -1,5 +1,6 @@
 import { callGemini } from "./aiClient.js";
 import { getSystemPrompt } from "../prompts/prompts.js";
+import { generateProjectAdvice } from "./projectService.js";
 
 import {
   getChatHistory,
@@ -7,10 +8,8 @@ import {
 } from "../memory/chatMemory.js";
 
 export const generateAIResponse = async (conversation, mode) => {
-  // Get previous chats
   const chats = getChatHistory();
 
-  // Save latest user message
   const latestUserMessage = conversation[conversation.length - 1];
 
   chats.push({
@@ -18,18 +17,27 @@ export const generateAIResponse = async (conversation, mode) => {
     text: latestUserMessage.text,
   });
 
-  // Get system prompt
-  const systemPrompt = getSystemPrompt(mode);
-
-  // Convert conversation into Gemini format
   const chatHistory = conversation
     .map((msg) => `${msg.role}: ${msg.text}`)
     .join("\n");
 
-  // Call Gemini through AI Client
+  if (mode === "project-advisor") {
+    const reply = await generateProjectAdvice(chatHistory);
+
+    chats.push({
+      role: "ai",
+      text: reply,
+    });
+
+    saveChatHistory(chats);
+
+    return reply;
+  }
+
+  const systemPrompt = getSystemPrompt(mode);
+
   const reply = await callGemini(systemPrompt, chatHistory);
 
-  // Save AI reply
   chats.push({
     role: "ai",
     text: reply,
