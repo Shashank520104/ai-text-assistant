@@ -1,31 +1,32 @@
 import fs from "fs";
-import { createRequire } from "module";
+import { PDFParse } from "pdf-parse";
+
 import { ResumeSchema } from "../schemas/resumeSchema.js";
 import { callGemini } from "./aiClient.js";
 
-const require = createRequire(import.meta.url);
-const pdf = require("pdf-parse");
+export const analyzeResume = async (resume, jobRole) => {
+  let parser;
 
-export const analyzeResume = async (resumePath, jobRole) => {
   try {
     console.log("1. Resume service started");
-    console.log("2. Resume path:", resumePath);
+    console.log("2. Resume path:", resume);
 
-    if (!resumePath) {
-      throw new Error("Resume file path is missing");
-    }
+    const pdfBuffer = fs.readFileSync(resume);
 
-    const pdfBuffer = fs.readFileSync(resumePath);
     console.log("3. PDF file read successfully");
 
-    const pdfData = await pdf(pdfBuffer);
-    console.log("4. PDF parsed successfully");
+    parser = new PDFParse({
+      data: pdfBuffer,
+    });
 
+    const pdfData = await parser.getText();
     const resumeText = pdfData.text;
+
+    console.log("4. PDF parsed successfully");
     console.log("5. Extracted text length:", resumeText.length);
 
-    if (!resumeText || resumeText.trim().length === 0) {
-      throw new Error("No text found in PDF");
+    if (!resumeText.trim()) {
+      throw new Error("No readable text found inside the PDF.");
     }
 
     const systemPrompt = `
@@ -59,8 +60,6 @@ Rules:
 - Do not wrap JSON inside code blocks.
 - ats_score must be a number between 0 and 100.
 - strengths, weaknesses, and missing_keywords must be arrays of strings.
-- verdict must be a string.
-- improvement_tip must be a string.
 `;
 
     console.log("6. Calling Gemini");
@@ -70,7 +69,7 @@ Rules:
     console.log("7. Gemini response received");
 
     const cleanedResult = result
-      .replace(/```json/g, "")
+      .replace(/```json/gi, "")
       .replace(/```/g, "")
       .trim();
 
@@ -78,13 +77,22 @@ Rules:
 
     ResumeSchema.parse(parsedResult);
 
-    fs.unlinkSync(resume);
-
     console.log("8. JSON parsed and validated");
 
     return parsedResult;
   } catch (error) {
-    console.error("Resume Analysis Error:", error.message);
-    throw new Error(error.message);
+    console.error("Resume Analysis Error:", error);
+
+    throw new Error(
+      error.message || "Resume analysis failed."
+    );
+  } finally {
+    if (parser) {
+      await parser.destroy();
+    }
+
+    if (fs.existsSync(resume)) {
+      fs.unlinkSync(resume);
+    }
   }
 };
