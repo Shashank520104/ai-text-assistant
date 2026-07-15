@@ -1,5 +1,5 @@
 const BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8000";
+  import.meta.env.VITE_API_URL || "https://ai-text-assistant-76u1.onrender.com";
 
 export const fetchHistory = async () => {
   const response = await fetch(`${BASE_URL}/ai/history`);
